@@ -9,15 +9,15 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 
 @Entity
-@Table(name = "chat_conversations", indexes = {
-    @Index(name = "idx_chat_conv_user_id", columnList = "userId"),
-    @Index(name = "idx_chat_conv_updated_at", columnList = "updatedAt")
+@Table(name = "document_records", indexes = {
+    @Index(name = "idx_doc_record_user_id", columnList = "userId"),
+    @Index(name = "idx_doc_record_uploaded_at", columnList = "uploadedAt")
 })
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class ChatConversation {
+public class DocumentRecord {
 
     @Id
     @Column(length = 64)
@@ -28,29 +28,31 @@ public class ChatConversation {
     private String userId = "default_user";
 
     @Column(nullable = false, length = 255)
-    private String title;
+    private String fileName;
+
+    @Column(length = 50)
+    private String fileType;
 
     @Column(nullable = false)
-    private LocalDateTime createdAt;
+    private long fileSize;
 
     @Column(nullable = false)
-    private LocalDateTime updatedAt;
+    private int chunkCount;
+
+    @Column(nullable = false)
+    @Builder.Default
+    private boolean isShared = false;
+
+    @Column(nullable = false)
+    private LocalDateTime uploadedAt;
 
     @PrePersist
     public void prePersist() {
         if (userId == null || userId.isBlank()) {
             userId = "default_user";
         }
-        if (createdAt == null) {
-            createdAt = LocalDateTime.now();
+        if (uploadedAt == null) {
+            uploadedAt = LocalDateTime.now();
         }
-        if (updatedAt == null) {
-            updatedAt = LocalDateTime.now();
-        }
-    }
-
-    @PreUpdate
-    public void preUpdate() {
-        updatedAt = LocalDateTime.now();
     }
 }
