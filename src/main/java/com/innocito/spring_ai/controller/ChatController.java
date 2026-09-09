@@ -13,8 +13,10 @@ public class ChatController {
     private final ChatService chatService;
 
     @GetMapping("/chat")
-    public ResponseEntity<String> chat(@RequestParam(name = "message") String message) {
-        String chat = chatService.chat(message);
+    public ResponseEntity<String> chat(
+            @RequestParam(name = "conversationId", required = false, defaultValue = "default") String conversationId,
+            @RequestParam(name = "message") String message) {
+        String chat = chatService.chat(conversationId, message);
         return ResponseEntity.ok(chat);
     }
 }

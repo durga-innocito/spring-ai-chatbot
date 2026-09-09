@@ -21,9 +21,11 @@ public class WebChatController {
 
     @PostMapping("/api/chat")
     @ResponseBody
-    public ResponseEntity<ChatResponse> sendMessage(@RequestParam String message) {
+    public ResponseEntity<ChatResponse> sendMessage(
+            @RequestParam(required = false, defaultValue = "default") String conversationId,
+            @RequestParam String message) {
         try {
-            String response = chatService.chat(message);
+            String response = chatService.chat(conversationId, message);
             return ResponseEntity.ok(new ChatResponse(message, response, true));
         } catch (Exception e) {
             return ResponseEntity.ok(new ChatResponse(message, "Error: " + e.getMessage(), false));

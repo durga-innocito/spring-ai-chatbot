@@ -968,6 +968,18 @@
             sendMessage();
         }
 
+        // --- CONVERSATION ID MANAGEMENT ---
+        function getOrCreateConversationId() {
+            let convId = localStorage.getItem('chat_conversation_id');
+            if (!convId) {
+                convId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+                localStorage.setItem('chat_conversation_id', convId);
+            }
+            return convId;
+        }
+
+        let currentConversationId = getOrCreateConversationId();
+
         // --- CLEAR CHAT ---
         function clearChat() {
             messagesInner.innerHTML = '';
@@ -975,6 +987,9 @@
                 messagesInner.appendChild(emptyState);
             }
             messageInput.value = '';
+            // Reset conversation ID to start fresh memory context
+            currentConversationId = 'conv_' + Date.now() + '_' + Math.random().toString(36).substring(2, 9);
+            localStorage.setItem('chat_conversation_id', currentConversationId);
             messageInput.focus();
         }
 
@@ -1010,7 +1025,7 @@
                 headers: {
                     'Content-Type': 'application/x-www-form-urlencoded',
                 },
-                body: 'message=' + encodeURIComponent(message)
+                body: 'message=' + encodeURIComponent(message) + '&conversationId=' + encodeURIComponent(currentConversationId)
             })
             .then(response => {
                 if (!response.ok) {
