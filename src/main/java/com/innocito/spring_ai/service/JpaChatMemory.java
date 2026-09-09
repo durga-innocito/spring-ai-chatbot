@@ -31,6 +31,21 @@ public class JpaChatMemory implements ChatMemory {
 
     private static final int MAX_CONTEXT_MESSAGES = 20;
 
+    @Transactional
+    public ChatConversation ensureConversation(String conversationId, String userId, String initialTitle) {
+        String effectiveUserId = (userId != null && !userId.isBlank()) ? userId : "default_user";
+        return conversationRepository.findById(conversationId).orElseGet(() -> {
+            ChatConversation newConv = ChatConversation.builder()
+                    .id(conversationId)
+                    .userId(effectiveUserId)
+                    .title(initialTitle != null && !initialTitle.isBlank() ? initialTitle : "New Conversation")
+                    .createdAt(LocalDateTime.now())
+                    .updatedAt(LocalDateTime.now())
+                    .build();
+            return conversationRepository.save(newConv);
+        });
+    }
+
     @Override
     @Transactional
     public void add(String conversationId, List<Message> messages) {
@@ -41,7 +56,6 @@ public class JpaChatMemory implements ChatMemory {
         // 1. Ensure conversation session exists
         ChatConversation conversation = conversationRepository.findById(conversationId).orElseGet(() -> {
             String initialTitle = "New Conversation";
-            // If the first message is from a user, generate a title preview
             for (Message msg : messages) {
                 if (msg.getMessageType() == MessageType.USER) {
                     initialTitle = generateTitleFromMessage(msg.getText());
@@ -50,6 +64,7 @@ public class JpaChatMemory implements ChatMemory {
             }
             ChatConversation newConv = ChatConversation.builder()
                     .id(conversationId)
+                    .userId("default_user")
                     .title(initialTitle)
                     .createdAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
@@ -121,6 +136,16 @@ public class JpaChatMemory implements ChatMemory {
         if (conversationId != null) {
             messageRepository.deleteByConversationId(conversationId);
             conversationRepository.deleteById(conversationId);
+        }
+    }
+
+    @Transactional
+    public void clearForUser(String conversationId, String userId) {
+        if (conversationId != null && userId != null) {
+            conversationRepository.findByIdAndUserId(conversationId, userId).ifPresent(conv -> {
+                messageRepository.deleteByConversationId(conversationId);
+                conversationRepository.delete(conv);
+            });
         }
     }
 
