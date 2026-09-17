@@ -993,8 +993,29 @@
             messageInput.focus();
         }
 
+        // --- RESILIENT FETCH WITH AUTO-RETRY ---
+        async function fetchWithRetry(url, options, maxRetries = 2) {
+            let lastError;
+            for (let attempt = 1; attempt <= maxRetries; attempt++) {
+                try {
+                    const response = await fetch(url, options);
+                    if (!response.ok) {
+                        throw new Error('Server responded with status ' + response.status);
+                    }
+                    return await response.json();
+                } catch (err) {
+                    lastError = err;
+                    // On socket disconnect / network drop, wait briefly and retry on a fresh TCP connection
+                    if (attempt < maxRetries) {
+                        await new Promise(resolve => setTimeout(resolve, 300));
+                    }
+                }
+            }
+            throw lastError;
+        }
+
         // --- SEND MESSAGE ---
-        function sendMessage() {
+        async function sendMessage() {
             const message = messageInput.value.trim();
             if (!message || isLoading) return;
 
@@ -1019,38 +1040,31 @@
             messagesInner.appendChild(loadingRow);
             scrollToBottom();
 
-            // Send Request to Spring Boot Backend
-            fetch(apiUrl, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                },
-                body: 'message=' + encodeURIComponent(message) + '&conversationId=' + encodeURIComponent(currentConversationId)
-            })
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error('Server responded with status ' + response.status);
-                }
-                return response.json();
-            })
-            .then(data => {
+            try {
+                // Send Request with auto-retry for idle connection resilience
+                const data = await fetchWithRetry(apiUrl, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: 'message=' + encodeURIComponent(message) + '&conversationId=' + encodeURIComponent(currentConversationId)
+                }, 2);
+
                 loadingRow.remove();
                 if (data.success) {
                     appendAiMessage(data.aiResponse);
                 } else {
                     appendAiMessage(data.aiResponse || 'An unexpected error occurred.', true);
                 }
-            })
-            .catch(error => {
+            } catch (error) {
                 loadingRow.remove();
                 appendAiMessage('**Connection Error**: Unable to reach backend server. Please check your network connection or reload the page.\n\n*Details: ' + error.message + '*', true);
-            })
-            .finally(() => {
+            } finally {
                 isLoading = false;
                 sendBtn.disabled = false;
                 messageInput.focus();
                 scrollToBottom();
-            });
+            }
         }
 
         // --- MESSAGE RENDERING ---
