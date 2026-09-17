@@ -903,8 +903,8 @@
     </div>
 
     <script th:inline="javascript">
-        /* Thymeleaf dynamically injects the correct context path (e.g. /spring-ai-0.0.1-SNAPSHOT/api/chat) */
-        const apiUrl = /*[[@{/api/chat}]]*/ 'api/chat';
+        /* Thymeleaf dynamically injects the correct context path */
+        const apiUrl = /*[[@{/api/chat}]]*/ '/api/chat';
 
         const messagesContainer = document.getElementById('chatMessages');
         const messagesInner = document.getElementById('messagesInner');
@@ -1043,7 +1043,7 @@
             })
             .catch(error => {
                 loadingRow.remove();
-                appendAiMessage('**Connection Error**: Unable to reach Ollama AI backend. Please verify that your Ollama server and Spring Boot application are running.\n\n*Details: ' + error.message + '*', true);
+                appendAiMessage('**Connection Error**: Unable to reach backend server. Please check your network connection or reload the page.\n\n*Details: ' + error.message + '*', true);
             })
             .finally(() => {
                 isLoading = false;
